@@ -1,12 +1,11 @@
 const express = require("express");
 const router = express.Router();
 const { Op, Sequelize } = require("sequelize");
-const { Posts, Likes } = require("../models");
+const { Posts } = require("../models");
 const authMiddleware = require("../middlewares/auth-middleware");
 
-const sequelize = new Sequelize("database", "username", "password", {
+const sequelize = new Sequelize({
   dialect: "sqlite",
-  storage: "path/to/database.sqlite",
 });
 
 //게시글 전체 조회 (좋아요 갯수 포함)
