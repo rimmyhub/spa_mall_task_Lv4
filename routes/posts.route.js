@@ -1,17 +1,39 @@
 const express = require("express");
 const router = express.Router();
-const { Op } = require("sequelize");
-const { Posts } = require("../models");
+const { Op, Sequelize } = require("sequelize");
+const { Posts, Likes } = require("../models");
 const authMiddleware = require("../middlewares/auth-middleware");
 
-// 게시글 전체 목록 조회
-router.get("/posts", async (req, res) => {
-  const posts = await Posts.findAll({
-    attributes: ["postId", "userId", "title", "createdAt", "updatedAt"],
-    order: [["createdAt", "DESC"]], // 내림차순 정렬
-  });
+const sequelize = new Sequelize("database", "username", "password", {
+  dialect: "sqlite",
+  storage: "path/to/database.sqlite",
+});
 
-  return res.status(200).json({ data: posts });
+//게시글 전체 조회 (좋아요 갯수 포함)
+router.get("/posts", async (req, res) => {
+  try {
+    const posts = await Posts.findAll({
+      attributes: [
+        "postId",
+        "userId",
+        "title",
+        "createdAt",
+        "updatedAt",
+        [
+          sequelize.literal(
+            "(SELECT COUNT(*) FROM Likes WHERE Likes.PostId = Posts.postId)"
+          ),
+          "likeCount",
+        ],
+      ],
+      order: [["likeCount", "DESC"]],
+    });
+
+    return res.status(200).json({ data: posts });
+  } catch (error) {
+    console.error("오류가 발생했습니다.", error);
+    res.status(500).json({ message: "오류가 발생했습니다." });
+  }
 });
 
 // 게시글 상세 조회
@@ -34,13 +56,12 @@ router.get("/posts/:postId", async (req, res) => {
 
 // 게시글 생성
 router.post("/posts", authMiddleware, async (req, res) => {
-  const { userId, nickname } = res.locals.user;
+  const { userId } = res.locals.user;
   const { postId, title, content } = req.body;
 
   const post = await Posts.create({
     postId,
     UserId: userId,
-    nickname,
     title,
     content,
   });

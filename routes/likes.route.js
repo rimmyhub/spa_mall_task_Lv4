@@ -15,36 +15,26 @@ router.get("/posts/:postId/like", async (req, res) => {
 
 //좋아요 만들기
 router.post("/posts/:postId/like", authMiddleware, async (req, res) => {
-  const { userId } = res.locals.user;
-  const { postId } = req.params;
-
   try {
-    const existingLike = await Likes.findOne({
+    const { userId } = res.locals.user;
+    const { postId } = req.params;
+
+    const createLike = await Likes.findOne({
       where: { UserId: userId, PostId: postId },
     });
-
-    if (existingLike) {
-      await Likes.destroy({
-        where: {
-          UserId: userId,
-          PostId: postId,
-        },
-      });
-      res.status(200).json({
-        liked: false,
-      });
-    } else {
-      await Likes.create({
-        UserId: userId,
-        PostId: postId,
-      });
-      res.status(200).json({
-        liked: true,
-      });
+    if (createLike) {
+      await createLike.destroy();
+      const likeCount = await Likes.count({ where: { PostId: postId } });
+      return res
+        .status(200)
+        .json({ message: "좋아요가 취소되었습니다.", likeCount });
     }
+
+    await Likes.create({ UserId: userId, PostId: postId });
+    const likeCount = await Likes.count({ where: { PostId: postId } });
+    res.status(200).json({ message: "좋아요가 완료되었습니다.", likeCount });
   } catch (error) {
-    console.error("오류가 발생했습니다.", error);
-    res.status(500).json({ message: "오류가 발생했습니다." });
+    res.status(400).json({ message: "좋아요 처리가 실패하였습니다." });
   }
 });
 
