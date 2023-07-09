@@ -6,7 +6,9 @@ const authMiddleware = require("../middlewares/auth-middleware");
 
 //댓글 조회
 router.get("/posts/:postId/comments", async (req, res) => {
+  const { postId } = req.params;
   const comments = await Comments.findAll({
+    where: { PostId: postId },
     attributes: [
       "commentId",
       "PostId",
